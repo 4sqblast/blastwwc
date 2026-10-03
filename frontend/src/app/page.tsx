@@ -1,0 +1,1173 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowDown,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Copy,
+  HandHeart,
+  MapPin,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
+
+import { FaInstagram, FaFacebookF, FaYoutube } from "react-icons/fa";
+
+import api from "@/lib/api";
+import { Merch, CartItem } from "@/types";
+import { upload } from "@imagekit/javascript";
+
+const flyer =
+  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_2293.PNG-2MRVZHOgks7uNFlvlwElM0fO5A2z2M.png";
+const eventDate = new Date("2026-11-19T18:00:00+01:00");
+const gallery = [flyer, flyer, flyer];
+const fallbackMerch: Merch[] = [
+  {
+    id: 1,
+    name: "Fresh Oil Tee",
+    adult_price: 12000,
+    child_price: 9000,
+    image: flyer,
+    color: "blue",
+  },
+  {
+    id: 2,
+    name: "Blast Keepsake",
+    adult_price: 15000,
+    child_price: 11000,
+    image: flyer,
+    color: "black",
+  },
+  {
+    id: 3,
+    name: "Word & Worship Tee",
+    adult_price: 12000,
+    child_price: 9000,
+    image: flyer,
+    color: "white",
+  },
+];
+
+const naira = (value: number) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+function Countdown() {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    setNow(Date.now());
+
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  if (now === null) {
+    return (
+      <div className="grid grid-cols-4 gap-2 sm:gap-4">
+        {["Days", "Hours", "Minutes", "Seconds"].map((label) => (
+          <div
+            key={label}
+            className="rounded-xl border border-white/15 bg-white/10 px-2 py-3 text-center backdrop-blur-sm"
+          >
+            <div className="font-display text-2xl font-semibold text-white sm:text-4xl">
+              00
+            </div>
+
+            <div className="mt-1 text-[9px] uppercase tracking-[0.22em] text-white/60">
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const distance = Math.max(0, eventDate.getTime() - now);
+
+  const values = [
+    Math.floor(distance / 86400000),
+    Math.floor(distance / 3600000) % 24,
+    Math.floor(distance / 60000) % 60,
+    Math.floor(distance / 1000) % 60,
+  ];
+
+  return (
+    <div className="grid grid-cols-4 gap-2 sm:gap-4">
+      {values.map((value, index) => (
+        <div
+          key={index}
+          className="rounded-xl border border-white/15 bg-white/10 px-2 py-3 text-center backdrop-blur-sm"
+        >
+          <div className="font-display text-2xl font-semibold text-white sm:text-4xl">
+            {String(value).padStart(2, "0")}
+          </div>
+
+          <div className="mt-1 text-[9px] uppercase tracking-[0.22em] text-white/60">
+            {["Days", "Hours", "Minutes", "Seconds"][index]}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function Page() {
+  const [merch, setMerch] = useState<Merch[]>(fallbackMerch);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selected, setSelected] = useState<Merch>(fallbackMerch[0]);
+  const [size, setSize] = useState("M");
+  const [audience, setAudience] = useState<"Adult" | "Child">("Adult");
+  const [quantity, setQuantity] = useState(1);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [recipient, setRecipient] = useState("");
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadMerchandise() {
+      try {
+        const response = await api.get<Merch[]>("merch/list/");
+        if (active && response.data.length) {
+          setMerch(response.data);
+          setSelected(response.data[0]);
+        }
+      } catch {
+        // Keep the curated fallback collection available if the API is unavailable.
+      }
+    }
+    loadMerchandise();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const copyAccountNumber = async () => {
+    try {
+      await navigator.clipboard.writeText("25666798543");
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to copy account number:", error);
+    }
+  };
+
+  const total = useMemo(
+    () =>
+      cart.reduce(
+        (sum, item) =>
+          sum +
+          (item.audience === "Adult"
+            ? item.product.adult_price
+            : item.product.child_price) *
+            item.quantity,
+        0,
+      ),
+    [cart],
+  );
+  const selectedPrice =
+    audience === "Adult" ? selected.adult_price : selected.child_price;
+
+  function addToCart() {
+    const itemId = selected.id;
+
+    setCart((items) => {
+      const existing = items.find(
+        (item) =>
+          item.id === itemId &&
+          item.size === size &&
+          item.audience === audience,
+      );
+
+      return existing
+        ? items.map((item) =>
+            item.id === itemId &&
+            item.size === size &&
+            item.audience === audience
+              ? {
+                  ...item,
+                  quantity: item.quantity + quantity,
+                }
+              : item,
+          )
+        : [
+            ...items,
+            {
+              id: itemId,
+              product: selected,
+              size,
+              audience,
+              quantity,
+              color: selected.color,
+            },
+          ];
+    });
+
+    setCartOpen(true);
+  }
+
+  function changeQuantity(id: number, delta: number) {
+    setCart((items) =>
+      items.map((item) =>
+        item.id === id
+          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
+          : item,
+      ),
+    );
+  }
+  useEffect(() => {
+    if (gallery.length <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setGalleryIndex((current) => (current + 1) % gallery.length);
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [gallery.length]);
+
+  const uploadReceipt = async () => {
+    if (!receipt) return;
+
+    try {
+      // Get ImageKit authentication parameters
+      const authResponse = await fetch("/api/imagekit-auth");
+
+      if (!authResponse.ok) {
+        throw new Error("Failed to authenticate with ImageKit");
+      }
+
+      const auth = await authResponse.json();
+
+      // Upload receipt directly to ImageKit
+      const result = await upload({
+        file: receipt,
+        fileName: receipt.name,
+        token: auth.token,
+        signature: auth.signature,
+        expire: auth.expire,
+        publicKey: auth.publicKey,
+        folder: "/receipts",
+        useUniqueFileName: true,
+      });
+
+      console.log("Uploaded:", result);
+
+      // This is the URL you'll send to Django
+      const receiptUrl = result.url;
+      console.log("Receipt URL:", receiptUrl);
+      return receiptUrl;
+    } catch (error) {
+      console.error("Receipt upload failed:", error);
+    }
+  };
+
+  const handleSubmission = async () => {
+    if (isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const userId = localStorage.getItem("user_id");
+
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
+
+      if (!recipient.trim()) {
+        throw new Error("Recipient name is required");
+      }
+
+      if (!receipt) {
+        throw new Error("Receipt is required");
+      }
+
+      if (cart.length === 0) {
+        throw new Error("Cart is empty");
+      }
+
+      // Upload receipt first
+      const receiptUrl = await uploadReceipt();
+
+      if (!receiptUrl) {
+        throw new Error("Receipt upload failed");
+      }
+
+      const items = cart.map((item) => ({
+        merch: item.product.id,
+        quantity: item.quantity,
+        size: `${item.audience} - ${item.size}`,
+        color: item.color || item.product.color || "",
+      }));
+
+      const form = new FormData();
+
+      form.append("user", userId);
+      form.append("recipient", recipient.trim());
+      form.append("receipt", receiptUrl);
+      form.append("items", JSON.stringify(items));
+
+      const response = await api.post("order/create/", form);
+
+      console.log("ORDER CREATED:", response.data);
+
+      // Show success message
+      setSubmitted(true);
+
+      // After showing the success message, reset everything
+      setTimeout(() => {
+        setSubmitted(false);
+        setCheckoutOpen(false);
+
+        // Clear the current order
+        setCart([]);
+        setRecipient("");
+        setReceipt(null);
+        setQuantity(1);
+      }, 3000);
+    } catch (err: any) {
+      console.error("ORDER SUBMISSION FAILED");
+      console.error("STATUS:", err.response?.status);
+      console.error("DATA:", err.response?.data);
+      console.error("MESSAGE:", err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#f7f4ed] text-[#172c2a]">
+      <header className="absolute inset-x-0 top-0 z-20">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
+          <a className="flex items-center gap-3 text-white" href="#top">
+            <img
+              src="/blast-logo.png"
+              alt="Blast"
+              className="h-10 w-auto object-contain"
+            />
+            <span className="hidden text-xs font-semibold uppercase tracking-[0.24em] sm:block">
+              Blast 2026
+            </span>
+          </a>
+          <nav className="hidden gap-8 text-xs font-semibold uppercase tracking-[0.2em] text-white/75 md:flex">
+            <a href="#story">The story</a>
+            <a href="#merchandise">Merchandise</a>
+            <a href="#visit">Visit us</a>
+          </nav>
+          <button
+            className="rounded-full bg-white p-2.5 text-[#173fca] transition hover:bg-white/90"
+            onClick={() => setCartOpen(true)}
+            aria-label="Open shopping cart"
+          >
+            <span className="relative block">
+              <ShoppingBag className="size-5" />
+
+              <span className="absolute -right-2 -top-2 grid min-w-4 h-4 place-items-center rounded-full bg-[#173fca] px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+              </span>
+            </span>
+          </button>
+        </div>
+      </header>
+
+      <section
+        id="top"
+        className="relative isolate min-h-[780px] overflow-hidden bg-[#1648dc] text-white"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(255,203,50,.8),transparent_25%),radial-gradient(circle_at_12%_88%,rgba(183,82,255,.8),transparent_28%),linear-gradient(135deg,#1749dc,#1579f5)]" />
+        <div className="absolute -right-20 top-24 size-80 rounded-full border-[45px] border-[#f5c52f]/80 opacity-80 blur-[1px] sm:right-12 sm:size-[32rem]" />
+        <div className="relative mx-auto grid max-w-7xl items-end gap-12 px-5 pb-14 pt-36 sm:px-8 lg:grid-cols-[1fr_360px] lg:pb-24">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="max-w-3xl"
+          >
+            <p className="mb-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.35em] text-[#ffd54e]">
+              <Sparkles data-icon="inline-start" /> Word & Worship Conference
+            </p>
+            <h1 className="font-display text-[clamp(4.5rem,13vw,10rem)] font-black uppercase leading-[.78] tracking-[-.09em]">
+              Fresh
+              <br />
+              <span className="text-[#ffd34b]">Oil</span>
+            </h1>
+            <p className="mt-8 max-w-lg text-lg leading-relaxed text-white/80">
+              A fresh outpouring. A gathered people. Four days of worship,
+              teaching and encounter in the heart of Lagos.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                className="rounded-full flex items-center bg-[#ffd34b] px-6 text-[#173fca] hover:bg-[#ffe17b]"
+                onClick={() =>
+                  document
+                    .getElementById("merchandise")
+                    ?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                Explore the collection <ArrowDown data-icon="inline-end" />
+              </button>
+              <a
+                href="#story"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-white/30 px-5 text-sm font-semibold"
+              >
+                Discover Fresh Oil <ArrowRight data-icon="inline-end" />
+              </a>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.25, duration: 0.7 }}
+            className="rounded-3xl border border-white/20 bg-[#062cae]/40 p-5 backdrop-blur-md"
+          >
+            <p className="mb-4 text-xs uppercase tracking-[.28em] text-white/60">
+              We gather in
+            </p>
+            <Countdown />
+            <div className="mt-6 grid gap-3 border-t border-white/15 pt-5 text-sm text-white/80">
+              <div className="flex gap-3">
+                <CalendarDays className="text-[#ffd34b]" />
+                19 — 22 November, 2026
+              </div>
+              <div className="flex gap-3">
+                <MapPin className="text-[#ffd34b]" />
+                Blast Arena, Lagos
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      <section
+        id="story"
+        className="mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:py-32"
+      >
+        <motion.div
+          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          viewport={{ once: true }}
+        >
+          <p className="eyebrow">The gathering</p>
+          <h2 className="mt-4 max-w-xl font-display text-5xl font-bold leading-[1.05] tracking-[-.05em] sm:text-7xl sm:leading-[.95]">
+            Come thirsty.
+            <br />
+            <span className="text-[#1855df]">Leave overflowing.</span>
+          </h2>
+          <p className="mt-8 max-w-md text-lg leading-relaxed text-[#53615e]">
+            Fresh Oil is a call to return to the source. Join BLAST community
+            for a weekend of praise, teaching, prayer and honest connection.
+          </p>
+        </motion.div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-3xl bg-[#e9dfca] p-7">
+            <Clock3 className="mb-14 text-[#1855df]" />
+            <p className="eyebrow">When</p>
+            <p className="mt-2 text-2xl font-semibold">
+              19 — 22 Nov
+              <br />
+              2026
+            </p>
+          </div>
+          <div className="rounded-3xl bg-[#1855df] p-7 text-white">
+            <MapPin className="mb-14 text-[#ffd34b]" />
+
+            <p className="eyebrow text-white/60">Where</p>
+
+            <p className="mt-2 text-3xl font-bold tracking-tight">
+              Blast Arena
+            </p>
+
+            <div className="mt-4 border-l-2 border-[#ffd34b]/60 pl-4">
+              <p className="text-base font-medium leading-relaxed text-white/90">
+                59 Akinwunmi Street
+              </p>
+              <p className="text-sm font-medium leading-relaxed text-white/70">
+                Alagomeji-Yaba, Lagos State
+              </p>
+            </div>
+          </div>
+          <div className="rounded-3xl bg-[#ffd34b] p-7 sm:col-span-2">
+            <HandHeart className="mb-10 text-[#173fca]" />
+            <p className="max-w-xl font-display text-3xl font-bold leading-tight text-[#173fca]">
+              "And I will pour out my Spirit on all people." — Joel 2:28
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="gallery"
+        className="bg-[#173fca] px-5 py-20 text-white sm:px-8"
+      >
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1fr_2fr] lg:items-end">
+          <div>
+            <p className="eyebrow text-[#ffd34b]">Moments with us</p>
+            <h2 className="mt-4 font-display text-5xl font-bold tracking-[-.05em] sm:text-6xl">
+              A people
+              <br />
+              gathered.
+            </h2>
+            <div className="mt-8 flex gap-2">
+              <button
+                className="rounded-full border-white/30 text-white hover:bg-white/10"
+                onClick={() =>
+                  setGalleryIndex(
+                    (galleryIndex + gallery.length - 1) % gallery.length,
+                  )
+                }
+              >
+                <ChevronLeft />
+              </button>
+              <button
+                className="rounded-full border-white/30 text-white hover:bg-white/10"
+                onClick={() =>
+                  setGalleryIndex((galleryIndex + 1) % gallery.length)
+                }
+              >
+                <ChevronRight />
+              </button>
+            </div>
+          </div>
+          <div className="relative aspect-[16/8] overflow-hidden rounded-3xl bg-[#2363e8]">
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={galleryIndex}
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.45 }}
+                src={gallery[galleryIndex]}
+                alt="Fresh Oil conference artwork"
+                className="size-full object-cover object-center"
+              />
+            </AnimatePresence>
+            <div className="absolute bottom-4 left-4 flex gap-1.5">
+              {gallery.map((_, index) => (
+                <button
+                  aria-label={`Show gallery image ${index + 1}`}
+                  key={index}
+                  onClick={() => setGalleryIndex(index)}
+                  className={`size-2 rounded-full ${index === galleryIndex ? "bg-[#ffd34b]" : "bg-white/50"}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="merchandise"
+        className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-32"
+      >
+        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+          <div>
+            <p className="eyebrow">Carry the message</p>
+            <h2 className="mt-4 font-display text-5xl font-bold tracking-[-.05em] sm:text-7xl">
+              Fresh Oil
+              <br />
+              <span className="text-[#1855df]">collection.</span>
+            </h2>
+          </div>
+          <p className="max-w-xs text-sm leading-relaxed text-[#53615e]">
+            Wear a reminder of what we are believing for. Every purchase
+            supports the gathering.
+          </p>
+        </div>
+        <div className="mt-12 gap-10">
+          <div className="flex gap-3 overflow-x-auto p-4">
+            {merch.map((item, index) => (
+              <motion.button
+                key={item.id ?? item.name}
+                whileHover={{ y: -6 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelected(item)}
+                className="group w-[75%] shrink-0 text-left sm:w-[45%] lg:w-[32%]"
+              >
+                <div
+                  className={`relative aspect-[.85] overflow-hidden rounded-2xl bg-[#e9dfca] ${
+                    selected === item
+                      ? "ring-4 ring-[#1855df] ring-offset-4 ring-offset-[#f7f4ed]"
+                      : ""
+                  }`}
+                >
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+
+                  {selected === item && (
+                    <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-[#ffd34b] text-[#173fca]">
+                      <Check />
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-3 font-semibold">{item.name}</p>
+
+                <p className="mt-1 text-sm text-[#53615e]">
+                  From {naira(Math.min(item.adult_price, item.child_price))}
+                </p>
+              </motion.button>
+            ))}
+          </div>
+          <div className="rounded-3xl bg-white p-6 shadow-[0_12px_50px_rgba(23,63,202,.08)] sm:p-8">
+            <p className="eyebrow">Your selection</p>
+            <h3 className="mt-3 text-2xl font-bold">{selected.name}</h3>
+            <div className="mt-7">
+              <label className="label">Size</label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {["S", "M", "L", "XL", "XXL"].map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setSize(option)}
+                    className={`size-11 rounded-full border text-sm font-semibold ${size === option ? "border-[#1855df] bg-[#1855df] text-white" : "border-[#d6ddd8] hover:border-[#1855df]"}`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-7">
+              <label className="label">For</label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(["Adult", "Child"] as const).map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setAudience(option)}
+                    className={`rounded-xl border px-3 py-3 text-sm font-semibold ${audience === option ? "border-[#1855df] bg-[#edf2ff] text-[#1855df]" : "border-[#d6ddd8]"}`}
+                  >
+                    {option}
+                    <span className="mt-1 block text-xs font-normal">
+                      {naira(
+                        option === "Adult"
+                          ? selected.adult_price
+                          : selected.child_price,
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-7 flex items-center justify-between">
+              <div>
+                <p className="label">Quantity</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <button
+                    className="grid size-9 place-items-center rounded-full border"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  >
+                    <Minus />
+                  </button>
+                  <span className="w-5 text-center font-semibold">
+                    {quantity}
+                  </span>
+                  <button
+                    className="grid size-9 place-items-center rounded-full border"
+                    onClick={() => setQuantity(quantity + 1)}
+                  >
+                    <Plus />
+                  </button>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="label">Item total</p>
+                <p className="mt-1 text-2xl font-bold text-[#1855df]">
+                  {naira(selectedPrice * quantity)}
+                </p>
+              </div>
+            </div>
+            <button
+              className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1855df] text-base hover:bg-[#0f38a8]"
+              onClick={addToCart}
+            >
+              Add to cart
+              <ShoppingBag className="size-5" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <footer
+        id="visit"
+        className="bg-[#102d2b] px-5 pb-6 pt-16 text-white sm:px-8 sm:pt-20"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-12 border-b border-white/15 pb-14 md:grid-cols-[1.3fr_.7fr_.7fr_.8fr]">
+            <div>
+              <a href="#top" className="inline-flex items-center gap-3">
+                <img
+                  src="/blast-logo.png"
+                  alt="Blast"
+                  className="h-11 w-auto object-contain"
+                />
+                <span className="sr-only">Blast 2026</span>
+              </a>
+              <p className="mt-6 max-w-sm text-sm leading-7 text-white/60">
+                Fresh Oil is a Word & Worship gathering for a people hungry for
+                God, community and a fresh outpouring.
+              </p>
+              <div className="mt-6 flex gap-3">
+                <a
+                  href="http://www.instagram.com/4sqblast"
+                  aria-label="Instagram"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="grid size-9 place-items-center rounded-full border border-white/20 text-white/75 transition hover:border-[#ffd34b] hover:text-[#ffd34b]"
+                >
+                  <FaInstagram className="size-4" />
+                </a>
+
+                <a
+                  href="https://www.facebook.com/4sqblast"
+                  aria-label="Facebook"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="grid size-9 place-items-center rounded-full border border-white/20 text-white/75 transition hover:border-[#ffd34b] hover:text-[#ffd34b]"
+                >
+                  <FaFacebookF className="size-4" />
+                </a>
+
+                <a
+                  href="https://www.youtube.com/@4sqblast_"
+                  aria-label="YouTube"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="grid size-9 place-items-center rounded-full border border-white/20 text-white/75 transition hover:border-[#ffd34b] hover:text-[#ffd34b]"
+                >
+                  <FaYoutube className="size-4" />
+                </a>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.2em] text-[#ffd34b]">
+                Explore
+              </p>
+              <div className="mt-5 flex flex-col gap-3 text-sm text-white/65">
+                <a href="#story" className="transition hover:text-white">
+                  The gathering
+                </a>
+                <a href="#merchandise" className="transition hover:text-white">
+                  Merchandise
+                </a>
+                <a href="#gallery" className="transition hover:text-white">
+                  Moments with us
+                </a>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.2em] text-[#ffd34b]">
+                Visit
+              </p>
+              <div className="mt-5 flex flex-col gap-3 text-sm leading-6 text-white/65">
+                <p>Blast Arena</p>
+                <p>
+                  59 Akinwunmi Street,
+                  <br />
+                  Alagomeji-Yaba, Lagos State
+                </p>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.2em] text-[#ffd34b]">
+                Get in touch
+              </p>
+              <div className="mt-5 flex flex-col gap-3 text-sm leading-6 text-white/65">
+                <a
+                  href="mailto:4sqblast.it@gmail.com"
+                  className="transition hover:text-white"
+                >
+                  www.4sqblast.org
+                </a>
+                <p>19 — 22 November 2026</p>
+                <a
+                  href="#merchandise"
+                  className="font-semibold text-[#ffd34b] transition hover:text-white"
+                >
+                  Shop the collection{" "}
+                  <ArrowRight className="ml-1 inline size-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col justify-between gap-3 pt-6 text-xs text-white/40 sm:flex-row">
+            <p>© 2026 4SQ Blast. All rights reserved.</p>
+            <div className="flex gap-5">
+              <a href="/privacy" className="hover:text-white">
+                Privacy
+              </a>
+              <a href="#" className="hover:text-white">
+                Order information
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      <AnimatePresence>
+        {cartOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCartOpen(false)}
+              className="fixed inset-0 z-30 bg-[#102d2b]/40 backdrop-blur-sm"
+            />
+            <motion.aside
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              className="fixed right-0 top-0 z-40 flex h-full w-full max-w-md flex-col bg-[#f7f4ed] p-6 shadow-2xl sm:p-8"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="eyebrow">Your bag</p>
+                  <h2 className="mt-2 text-3xl font-bold">Merchandise</h2>
+                </div>
+                <button onClick={() => setCartOpen(false)}>
+                  <X />
+                </button>
+              </div>
+              <div className="my-8 flex-1 overflow-y-auto">
+                {cart.length === 0 ? (
+                  <div className="grid h-full place-items-center text-center">
+                    <ShoppingBag className="mx-auto mb-4 size-10 text-[#1855df]" />
+                    <p className="font-semibold">Your bag is waiting.</p>
+                    <p className="mt-2 text-sm text-[#53615e]">
+                      Choose a piece from the collection.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {cart.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex gap-3 rounded-2xl bg-white p-3"
+                      >
+                        <img
+                          src={item.product.image}
+                          alt={item.product.name}
+                          className="size-20 rounded-xl object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex justify-between gap-2">
+                            <div>
+                              <p className="truncate font-semibold">
+                                {item.product.name}
+                              </p>
+                              <p className="mt-1 text-xs text-[#53615e]">
+                                {item.audience} · {item.size}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() =>
+                                setCart((items) =>
+                                  items.filter(
+                                    (cartItem) => cartItem.id !== item.id,
+                                  ),
+                                )
+                              }
+                              aria-label={`Remove ${item.product.name}`}
+                            >
+                              <Trash2 className="size-4 text-[#a75e55]" />
+                            </button>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="grid size-6 place-items-center rounded-full border"
+                                onClick={() => changeQuantity(item.id, -1)}
+                              >
+                                <Minus className="size-3" />
+                              </button>
+                              <span className="text-sm">{item.quantity}</span>
+                              <button
+                                className="grid size-6 place-items-center rounded-full border"
+                                onClick={() => changeQuantity(item.id, 1)}
+                              >
+                                <Plus className="size-3" />
+                              </button>
+                            </div>
+                            <p className="font-semibold">
+                              {naira(
+                                (item.audience === "Adult"
+                                  ? item.product.adult_price
+                                  : item.product.child_price) * item.quantity,
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {cart.length > 0 && (
+                <div className="border-t border-[#d6ddd8] pt-5">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span className="text-[#1855df]">{naira(total)}</span>
+                  </div>
+                  <button
+                    className="flex items-center justify-center mt-5 h-12 w-full rounded-full bg-[#1855df] hover:bg-[#0f38a8]"
+                    onClick={() => {
+                      setCartOpen(false);
+                      setCheckoutOpen(true);
+                    }}
+                  >
+                    Continue to checkout <ArrowRight data-icon="inline-end" />
+                  </button>
+                  <p className="mt-3 text-center text-xs text-[#53615e]">
+                    Secure order collection · Receipt required
+                  </p>
+                </div>
+              )}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {checkoutOpen && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-[#102d2b]/60 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-[#f7f4ed] p-6 sm:p-8"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="eyebrow">Almost there</p>
+                  <h2 className="mt-2 text-3xl font-bold">
+                    Complete your order
+                  </h2>
+                </div>
+
+                <button onClick={() => setCheckoutOpen(false)}>
+                  <X />
+                </button>
+              </div>
+
+              {submitted ? (
+                <div className="py-14 text-center">
+                  <div className="mx-auto grid size-16 place-items-center rounded-full bg-[#ffd34b] text-[#173fca]">
+                    <Check />
+                  </div>
+
+                  <h3 className="mt-5 text-2xl font-bold">Order received.</h3>
+
+                  <p className="mt-2 text-[#53615e]">
+                    Thank you. The team will confirm your order after checking
+                    the receipt.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-7 flex flex-col gap-5">
+                    {/* Recipient */}
+                    <div>
+                      <label className="label" htmlFor="recipient">
+                        Recipient name
+                      </label>
+
+                      <input
+                        id="recipient"
+                        value={recipient}
+                        onChange={(event) => setRecipient(event.target.value)}
+                        placeholder="Who should receive the order?"
+                        className="field"
+                      />
+                    </div>
+
+                    {/* Payment Details */}
+                    <div className="overflow-hidden rounded-2xl bg-[#1855df] text-white">
+                      <div className="p-5 sm:p-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#ffd34b]">
+                              Payment details
+                            </p>
+
+                            <h3 className="mt-2 text-xl font-bold">
+                              Make your payment
+                            </h3>
+                          </div>
+
+                          <div className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10">
+                            <span className="text-sm font-bold text-[#ffd34b]">
+                              ₦
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/70">
+                          Transfer the exact amount below to the account
+                          provided, then upload your payment receipt.
+                        </p>
+
+                        <div className="mt-5 rounded-xl bg-[#0f3da8] p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-white/50">
+                                Bank
+                              </p>
+                              <p className="mt-1 font-semibold">GTBank</p>
+                            </div>
+
+                            <div className="text-right">
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-white/50">
+                                Account name
+                              </p>
+                              <p className="mt-1 font-semibold">Blast Church</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 border-t border-white/10 pt-4">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-white/50">
+                              Account number
+                            </p>
+
+                            <div className="mt-2 flex items-center justify-between gap-3">
+                              <p className="text-2xl font-bold tracking-[0.08em] text-[#ffd34b]">
+                                25666798543
+                              </p>
+
+                              <button
+                                type="button"
+                                onClick={copyAccountNumber}
+                                className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-[#1855df] transition hover:bg-[#ffd34b]"
+                                aria-label="Copy account number"
+                              >
+                                {copied ? (
+                                  <Check className="size-4" />
+                                ) : (
+                                  <Copy className="size-4" />
+                                )}
+                              </button>
+                            </div>
+
+                            <p className="mt-2 text-xs text-white/50">
+                              {copied
+                                ? "Account number copied"
+                                : "Tap the copy button to copy"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 flex items-center justify-between border-t border-white/15 pt-4">
+                          <span className="text-sm text-white/70">
+                            Amount to pay
+                          </span>
+
+                          <span className="text-2xl font-bold text-[#ffd34b]">
+                            {naira(total)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Receipt */}
+                    <div>
+                      <label className="label" htmlFor="receipt">
+                        Payment receipt
+                      </label>
+
+                      <label
+                        htmlFor="receipt"
+                        className="mt-2 flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-[#9eaaa4] bg-white p-4 text-sm transition hover:border-[#1855df]"
+                      >
+                        <span className="truncate pr-4">
+                          {receipt?.name || "Upload receipt image"}
+                        </span>
+
+                        <span className="shrink-0 font-semibold text-[#1855df]">
+                          Choose file
+                        </span>
+                      </label>
+
+                      <input
+                        id="receipt"
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="sr-only"
+                        onChange={(event) =>
+                          setReceipt(event.target.files?.[0] ?? null)
+                        }
+                      />
+                    </div>
+
+                    {/* Order summary */}
+                    <div className="rounded-2xl bg-[#e9dfca] p-5">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-[#53615e]">
+                          Order total
+                        </span>
+
+                        <span className="text-xl font-bold text-[#1855df]">
+                          {naira(total)}
+                        </span>
+                      </div>
+
+                      <p className="mt-3 text-xs leading-relaxed text-[#53615e]">
+                        Your receipt will be used to verify this order before
+                        confirmation.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                    type="button"
+                    disabled={!recipient.trim() || !receipt || isSubmitting}
+                    className={`mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-full transition ${
+                      !recipient.trim() || !receipt || isSubmitting
+                        ? "cursor-not-allowed bg-[#b8c0bd] text-white"
+                        : "bg-[#1855df] text-white hover:bg-[#0f38a8]"
+                    }`}
+                    onClick={handleSubmission}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        Submitting order...
+                      </>
+                    ) : (
+                      <>
+                        Submit order
+                        <Check className="size-5" />
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </main>
+  );
+}
