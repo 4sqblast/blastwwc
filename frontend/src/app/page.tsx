@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import {
   ArrowDown,
   ArrowRight,
+  Bell,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -26,6 +33,9 @@ import { FaInstagram, FaFacebookF, FaYoutube } from "react-icons/fa";
 import api from "@/lib/api";
 import { Merch, CartItem } from "@/types";
 import { upload } from "@imagekit/javascript";
+
+import { subscribeToPush } from "@/lib/push";
+import { useRouter } from "next/navigation";
 
 const flyer =
   "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_2293.PNG-2MRVZHOgks7uNFlvlwElM0fO5A2z2M.png";
@@ -64,6 +74,39 @@ const naira = (value: number) =>
     currency: "NGN",
     maximumFractionDigits: 0,
   }).format(value);
+
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001,
+  });
+
+  return (
+    <motion.div
+      style={{ scaleX }}
+      className="fixed inset-x-0 top-0 z-[70] h-1 origin-left bg-[#ffd34b] shadow-[0_0_18px_rgba(255,211,75,.9)]"
+    />
+  );
+}
+
+function FloatingOrb({
+  className,
+  delay = 0,
+}: {
+  className: string;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      aria-hidden="true"
+      className={`pointer-events-none absolute rounded-full blur-2xl ${className}`}
+      animate={{ y: [0, -24, 0], x: [0, 12, 0], scale: [1, 1.08, 1] }}
+      transition={{ duration: 8, delay, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
 
 function Countdown() {
   const [now, setNow] = useState<number | null>(null);
@@ -129,6 +172,9 @@ function Countdown() {
 }
 
 export default function Page() {
+  const { scrollY } = useScroll();
+  const heroGlowY = useTransform(scrollY, [0, 900], [0, 220]);
+  const heroContentY = useTransform(scrollY, [0, 700], [0, -70]);
   const [merch, setMerch] = useState<Merch[]>(fallbackMerch);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selected, setSelected] = useState<Merch>(fallbackMerch[0]);
@@ -143,6 +189,45 @@ export default function Page() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((registration) => {
+          console.log("Service worker registered:", registration);
+        })
+        .catch((error) => {
+          console.error("Service worker registration failed:", error);
+        });
+    }
+  }, []);
+
+  async function enableNotifications() {
+    console.log("clicked");
+    try {
+      if (typeof window == "undefined") return;
+      const userId = localStorage.getItem("user_id");
+
+      if (!userId) {
+        console.error("User ID not found in localStorage");
+        return;
+      }
+
+      const subscription = await subscribeToPush();
+
+      console.log(subscription);
+
+      await api.post("user/push/subscribe/", {
+        user_id: userId,
+        subscription: subscription.toJSON(),
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -360,7 +445,12 @@ export default function Page() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#f7f4ed] text-[#172c2a]">
-      <header className="absolute inset-x-0 top-0 z-20">
+      <ScrollProgress />
+      <header className="fixed inset-x-0 top-0 z-20 transition-all duration-500">
+        <motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-24 bg-gradient-to-b from-[#102d2b]/25 to-transparent opacity-0 transition-opacity duration-500 hover:opacity-100"
+        />
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
           <a className="flex items-center gap-3 text-white" href="#top">
             <img
@@ -377,6 +467,14 @@ export default function Page() {
             <a href="#merchandise">Merchandise</a>
             <a href="#visit">Visit us</a>
           </nav>
+          <button
+            type="button"
+            onClick={enableNotifications}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-xs font-semibold text-[#173fca] shadow-sm transition hover:bg-[#ffd34b] hover:text-[#173fca]"
+          >
+            <Bell className="size-4" />
+            Stay in the loop
+          </button>
           <button
             className="rounded-full bg-white p-2.5 text-[#173fca] transition hover:bg-white/90"
             onClick={() => setCartOpen(true)}
@@ -397,9 +495,31 @@ export default function Page() {
         id="top"
         className="relative isolate min-h-[780px] overflow-hidden bg-[#1648dc] text-white"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(255,203,50,.8),transparent_25%),radial-gradient(circle_at_12%_88%,rgba(183,82,255,.8),transparent_28%),linear-gradient(135deg,#1749dc,#1579f5)]" />
-        <div className="absolute -right-20 top-24 size-80 rounded-full border-[45px] border-[#f5c52f]/80 opacity-80 blur-[1px] sm:right-12 sm:size-[32rem]" />
-        <div className="relative mx-auto grid max-w-7xl items-end gap-12 px-5 pb-14 pt-36 sm:px-8 lg:grid-cols-[1fr_360px] lg:pb-24">
+        <motion.div
+          style={{ y: heroGlowY }}
+          className="absolute -inset-y-32 inset-x-0 bg-[radial-gradient(circle_at_78%_18%,rgba(255,203,50,.8),transparent_25%),radial-gradient(circle_at_12%_88%,rgba(183,82,255,.8),transparent_28%),linear-gradient(135deg,#1749dc,#1579f5)]"
+        />
+        <FloatingOrb
+          delay={0.5}
+          className="-right-24 top-28 size-72 bg-[#ffd34b]/35 sm:right-24 sm:size-[30rem]"
+        />
+        <FloatingOrb
+          delay={1.5}
+          className="-bottom-24 -left-20 size-64 bg-[#b752ff]/35"
+        />
+        <motion.div
+          aria-hidden="true"
+          className="absolute -right-20 top-24 size-80 rounded-full border-[45px] border-[#f5c52f]/80 opacity-80 blur-[1px] sm:right-12 sm:size-[32rem]"
+          animate={{ rotate: 360, scale: [1, 1.06, 1] }}
+          transition={{
+            rotate: { duration: 30, repeat: Infinity, ease: "linear" },
+            scale: { duration: 7, repeat: Infinity, ease: "easeInOut" },
+          }}
+        />
+        <motion.div
+          style={{ y: heroContentY }}
+          className="relative mx-auto grid max-w-7xl items-end gap-12 px-5 pb-14 pt-36 sm:px-8 lg:grid-cols-[1fr_360px] lg:pb-24"
+        >
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -458,8 +578,23 @@ export default function Page() {
               </div>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       </section>
+
+      <motion.div
+        aria-hidden="true"
+        className="overflow-hidden border-y border-[#1855df]/10 bg-[#ffd34b] py-3 text-[#173fca]"
+      >
+        <motion.div
+          className="flex w-max gap-8 whitespace-nowrap text-xs font-black uppercase tracking-[.28em]"
+          animate={{ x: [0, -720] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+        >
+          {Array.from({ length: 8 }).map((_, index) => (
+            <span key={index}>Fresh oil · Word & worship · Lagos ·</span>
+          ))}
+        </motion.div>
+      </motion.div>
 
       <section
         id="story"
@@ -530,6 +665,7 @@ export default function Page() {
               <br />
               gathered.
             </h2>
+
             <div className="mt-8 flex gap-2">
               <button
                 className="rounded-full border-white/30 text-white hover:bg-white/10"
@@ -815,13 +951,24 @@ export default function Page() {
           </div>
           <div className="flex flex-col justify-between gap-3 pt-6 text-xs text-white/40 sm:flex-row">
             <p>© 2026 4SQ Blast. All rights reserved.</p>
-            <div className="flex gap-5">
+            <div className="flex items-center gap-5">
               <a href="/privacy" className="hover:text-white">
                 Privacy
               </a>
+
               <a href="#" className="hover:text-white">
                 Order information
               </a>
+
+              <button
+                type="button"
+                onClick={() => router.push("/send")}
+                className="text-white/20 transition hover:text-white/50"
+                aria-label="Notification administration"
+                title="Notification administration"
+              >
+                •
+              </button>
             </div>
           </div>
         </div>

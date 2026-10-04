@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import User
+from .models import User, PushSubscription
 
 class UserSerializer(serializers.ModelSerializer):
 
@@ -18,3 +18,6 @@ class UserSerializer(serializers.ModelSerializer):
             print(f"User {user.uuid} already exists.")
 
         return user
+
+class PushSubscriptionSerializer(serializers.Serializer):
+    subscription = serializers.JSONField()

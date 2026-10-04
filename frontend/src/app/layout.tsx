@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+import IosInstallPrompt from "@/components/IosInstallPrompt";
+
 export const metadata: Metadata = {
   title: "Fresh Oil | 4SQ Blast 2026",
   description:
@@ -31,6 +33,8 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)", color: "white" },
     { media: "(prefers-color-scheme: dark)", color: "black" },
   ],
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -42,7 +46,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         {children}
-        {process.env.NODE_ENV === "production"}
+        <IosInstallPrompt />
       </body>
     </html>
   );
