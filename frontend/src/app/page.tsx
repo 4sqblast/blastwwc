@@ -33,7 +33,7 @@ import { FaInstagram, FaFacebookF, FaYoutube } from "react-icons/fa";
 import api from "@/lib/api";
 import { Merch, CartItem } from "@/types";
 import { upload } from "@imagekit/javascript";
-
+import imageCompression from "browser-image-compression";
 import { subscribeToPush } from "@/lib/push";
 import { useRouter } from "next/navigation";
 
@@ -186,6 +186,9 @@ export default function Page() {
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [recipient, setRecipient] = useState("");
   const [receipt, setReceipt] = useState<File | null>(null);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -334,10 +337,39 @@ export default function Page() {
     return () => window.clearInterval(timer);
   }, [gallery.length]);
 
-  const uploadReceipt = async () => {
-    if (!receipt) return;
+  const handleReceiptChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
 
     try {
+      setReceipt(file);
+      setReceiptUrl(null);
+      setReceiptError(null);
+      setIsUploadingReceipt(true);
+
+      console.log(
+        "Original receipt size:",
+        (file.size / 1024 / 1024).toFixed(2),
+        "MB",
+      );
+
+      // Compress immediately after selecting the receipt
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1600,
+        useWebWorker: true,
+        fileType: "image/jpeg",
+      });
+
+      console.log(
+        "Compressed receipt size:",
+        (compressedFile.size / 1024 / 1024).toFixed(2),
+        "MB",
+      );
+
       // Get ImageKit authentication parameters
       const authResponse = await fetch("/api/imagekit-auth");
 
@@ -347,10 +379,10 @@ export default function Page() {
 
       const auth = await authResponse.json();
 
-      // Upload receipt directly to ImageKit
+      // Upload compressed image directly to ImageKit
       const result = await upload({
-        file: receipt,
-        fileName: receipt.name,
+        file: compressedFile,
+        fileName: `receipt-${Date.now()}.jpg`,
         token: auth.token,
         signature: auth.signature,
         expire: auth.expire,
@@ -359,14 +391,22 @@ export default function Page() {
         useUniqueFileName: true,
       });
 
-      console.log("Uploaded:", result);
+      console.log("Receipt uploaded:", result);
 
-      // This is the URL you'll send to Django
-      const receiptUrl = result.url;
-      console.log("Receipt URL:", receiptUrl);
-      return receiptUrl;
+      if (!result.url) {
+        throw new Error("ImageKit did not return a receipt URL");
+      }
+
+      setReceiptUrl(result.url);
+
+      console.log("Receipt URL ready:", result.url);
     } catch (error) {
-      console.error("Receipt upload failed:", error);
+      console.error("Receipt preparation/upload failed:", error);
+
+      setReceiptUrl(null);
+      setReceiptError("Receipt upload failed. Please try again.");
+    } finally {
+      setIsUploadingReceipt(false);
     }
   };
 
@@ -394,8 +434,10 @@ export default function Page() {
         throw new Error("Cart is empty");
       }
 
-      // Upload receipt first
-      const receiptUrl = await uploadReceipt();
+      // The receipt should already have been uploaded
+      if (isUploadingReceipt) {
+        throw new Error("Receipt is still being uploaded");
+      }
 
       if (!receiptUrl) {
         throw new Error("Receipt upload failed");
@@ -408,29 +450,29 @@ export default function Page() {
         color: item.color || item.product.color || "",
       }));
 
-      const form = new FormData();
-
-      form.append("user", userId);
-      form.append("recipient", recipient.trim());
-      form.append("receipt", receiptUrl);
-      form.append("items", JSON.stringify(items));
-
-      const response = await api.post("order/create/", form);
+      // Send JSON instead of FormData.
+      // items stays stringified because your Django serializer
+      // currently expects a JSON string.
+      const response = await api.post("order/create/", {
+        user: userId,
+        recipient: recipient.trim(),
+        receipt: receiptUrl,
+        items: JSON.stringify(items),
+      });
 
       console.log("ORDER CREATED:", response.data);
 
-      // Show success message
       setSubmitted(true);
 
-      // After showing the success message, reset everything
       setTimeout(() => {
         setSubmitted(false);
         setCheckoutOpen(false);
 
-        // Clear the current order
         setCart([]);
         setRecipient("");
         setReceipt(null);
+        setReceiptUrl(null);
+        setReceiptError(null);
         setQuantity(1);
       }, 3000);
     } catch (err: any) {
@@ -1247,24 +1289,48 @@ export default function Page() {
                         htmlFor="receipt"
                         className="mt-2 flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-[#9eaaa4] bg-white p-4 text-sm transition hover:border-[#1855df]"
                       >
-                        <span className="truncate pr-4">
-                          {receipt?.name || "Upload receipt image"}
-                        </span>
+                        {isUploadingReceipt && (
+                          <p className="mt-2 text-xs text-[#53615e]">
+                            Compressing and uploading receipt...
+                          </p>
+                        )}
 
-                        <span className="shrink-0 font-semibold text-[#1855df]">
-                          Choose file
-                        </span>
+                        {receiptUrl && !isUploadingReceipt && (
+                          <p className="mt-2 text-xs font-medium text-green-600">
+                            Receipt ready ✓
+                          </p>
+                        )}
+
+                        {receiptError && (
+                          <p className="mt-2 text-xs font-medium text-red-500">
+                            {receiptError}
+                          </p>
+                        )}
                       </label>
-
                       <input
                         id="receipt"
                         type="file"
-                        accept="image/*,.pdf"
+                        accept="image/*"
                         className="sr-only"
-                        onChange={(event) =>
-                          setReceipt(event.target.files?.[0] ?? null)
-                        }
+                        onChange={handleReceiptChange}
                       />
+                      {isUploadingReceipt && (
+                        <p className="mt-2 text-xs text-[#53615e]">
+                          Compressing and uploading receipt...
+                        </p>
+                      )}
+
+                      {receiptUrl && !isUploadingReceipt && (
+                        <p className="mt-2 text-xs font-medium text-green-600">
+                          Receipt ready ✓
+                        </p>
+                      )}
+
+                      {receiptError && (
+                        <p className="mt-2 text-xs font-medium text-red-500">
+                          {receiptError}
+                        </p>
+                      )}
                     </div>
 
                     {/* Order summary */}
@@ -1289,15 +1355,30 @@ export default function Page() {
                   {/* Submit */}
                   <button
                     type="button"
-                    disabled={!recipient.trim() || !receipt || isSubmitting}
+                    disabled={
+                      !recipient.trim() ||
+                      !receipt ||
+                      !receiptUrl ||
+                      isUploadingReceipt ||
+                      isSubmitting
+                    }
                     className={`mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-full transition ${
-                      !recipient.trim() || !receipt || isSubmitting
+                      !recipient.trim() ||
+                      !receipt ||
+                      !receiptUrl ||
+                      isUploadingReceipt ||
+                      isSubmitting
                         ? "cursor-not-allowed bg-[#b8c0bd] text-white"
                         : "bg-[#1855df] text-white hover:bg-[#0f38a8]"
                     }`}
                     onClick={handleSubmission}
                   >
-                    {isSubmitting ? (
+                    {isUploadingReceipt ? (
+                      <>
+                        <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        Preparing receipt...
+                      </>
+                    ) : isSubmitting ? (
                       <>
                         <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                         Submitting order...
