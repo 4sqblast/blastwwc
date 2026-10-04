@@ -56,7 +56,7 @@ class PushSubscriptionView(APIView):
 
 
 
-def send_push_notification(subscription, title, body, url="/", icon="/icon-192.png", badge="/badge-72.png"):
+def send_push_notification(subscription, title, body, url="https://blastwwc.vercel.app/", icon="/icon-192.png", badge="/badge-72.png"):
     payload = {
         "title": title,
         "body": body,
@@ -79,8 +79,6 @@ def send_push_notification(subscription, title, body, url="/", icon="/icon-192.p
         vapid_private_key=settings.VAPID_PRIVATE_KEY,
         vapid_claims={"sub": settings.VAPID_SUBJECT},
     )
-
-from django.contrib.auth import get_user_model
 
 
 @api_view(["POST"])

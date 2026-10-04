@@ -95,7 +95,7 @@ WSGI_APPLICATION = 'project.wsgi.application'
 #     }
 # }
 
-ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'production')
 
 if ENVIRONMENT == 'production':
     # most recent neon
