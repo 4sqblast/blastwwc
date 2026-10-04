@@ -32,13 +32,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-&plrqr19c4-=0&7)qb(wtnvz0$^)fl(4xecj^#-xlx3=n)qq34'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True')
 
 ALLOWED_HOSTS = ['*']
 
 
 # Application definition
-
+ssss
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -95,7 +95,7 @@ WSGI_APPLICATION = 'project.wsgi.application'
 #     }
 # }
 
-ENVIRONMENT = os.getenv('ENVIRONMENT', 'production')
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 
 if ENVIRONMENT == 'production':
     # most recent neon
@@ -169,6 +169,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://172.26.16.1:3000",
+    "https://blastwwc.vercel.app"
 ]
 
 CORS_ALLOW_HEADERS = [
