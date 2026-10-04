@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+
 import {
   AnimatePresence,
   motion,
@@ -27,7 +29,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-
 import { FaInstagram, FaFacebookF, FaYoutube } from "react-icons/fa";
 
 import api from "@/lib/api";
@@ -37,6 +38,9 @@ import imageCompression from "browser-image-compression";
 import { subscribeToPush } from "@/lib/push";
 import { useRouter } from "next/navigation";
 
+const EventDetails = dynamic(() => import("@/components/EventDetails"), {
+  ssr: false,
+});
 const flyer =
   "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_2293.PNG-2MRVZHOgks7uNFlvlwElM0fO5A2z2M.png";
 const eventDate = new Date("2026-11-19T18:00:00+01:00");
@@ -658,41 +662,7 @@ export default function Page() {
             for a weekend of praise, teaching, prayer and honest connection.
           </p>
         </motion.div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-3xl bg-[#e9dfca] p-7">
-            <Clock3 className="mb-14 text-[#1855df]" />
-            <p className="eyebrow">When</p>
-            <p className="mt-2 text-2xl font-semibold">
-              19 — 22 Nov
-              <br />
-              2026
-            </p>
-          </div>
-          <div className="rounded-3xl bg-[#1855df] p-7 text-white">
-            <MapPin className="mb-14 text-[#ffd34b]" />
-
-            <p className="eyebrow text-white/60">Where</p>
-
-            <p className="mt-2 text-3xl font-bold tracking-tight">
-              Blast Arena
-            </p>
-
-            <div className="mt-4 border-l-2 border-[#ffd34b]/60 pl-4">
-              <p className="text-base font-medium leading-relaxed text-white/90">
-                59 Akinwunmi Street
-              </p>
-              <p className="text-sm font-medium leading-relaxed text-white/70">
-                Alagomeji-Yaba, Lagos State
-              </p>
-            </div>
-          </div>
-          <div className="rounded-3xl bg-[#ffd34b] p-7 sm:col-span-2">
-            <HandHeart className="mb-10 text-[#173fca]" />
-            <p className="max-w-xl font-display text-3xl font-bold leading-tight text-[#173fca]">
-              "And I will pour out my Spirit on all people." — Joel 2:28
-            </p>
-          </div>
-        </div>
+        <EventDetails />
       </section>
 
       <section
@@ -775,42 +745,155 @@ export default function Page() {
           </p>
         </div>
         <div className="mt-12 gap-10">
-          <div className="flex gap-3 overflow-x-auto p-4">
-            {merch.map((item, index) => (
-              <motion.button
-                key={item.id ?? item.name}
-                whileHover={{ y: -6 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setSelected(item)}
-                className="group w-[75%] shrink-0 text-left sm:w-[45%] lg:w-[32%]"
-              >
-                <div
-                  className={`relative aspect-[.85] overflow-hidden rounded-2xl bg-[#e9dfca] ${
-                    selected === item
-                      ? "ring-4 ring-[#1855df] ring-offset-4 ring-offset-[#f7f4ed]"
-                      : ""
+          <div className="relative flex min-h-[520px] items-center justify-center overflow-visible p-4 sm:min-h-[580px]">
+            {merch.map((item, index) => {
+              const paths = [
+                {
+                  x: [-30, 80, 20, -90, -30],
+                  y: [40, -80, 30, 100, 40],
+                  rotate: [-4, 8, -5, 6, -4],
+                  scale: [1, 1.05, 0.97, 1.04, 1],
+                  duration: 8.5,
+                  delay: 0,
+                },
+                {
+                  x: [70, -40, -100, 40, 70],
+                  y: [-40, 80, -20, -100, -40],
+                  rotate: [5, -8, 4, -6, 5],
+                  scale: [0.98, 1.04, 1.02, 0.97, 0.98],
+                  duration: 10,
+                  delay: 1.2,
+                },
+                {
+                  x: [-80, 20, 100, -20, -80],
+                  y: [-20, 100, -70, 40, -20],
+                  rotate: [-6, 5, 8, -4, -6],
+                  scale: [1.03, 0.96, 1.06, 0.99, 1.03],
+                  duration: 9.2,
+                  delay: 2.1,
+                },
+              ];
+
+              const path = paths[index % paths.length];
+
+              return (
+                <motion.button
+                  key={item.id ?? item.name}
+                  onClick={() => setSelected(item)}
+                  className={`group absolute left-1/2 top-1/2 w-[72%] max-w-[300px] -translate-x-1/2 -translate-y-1/2 text-left sm:w-[45%] lg:w-[32%] ${
+                    index === 1 ? "z-20" : index === 2 ? "z-10" : "z-0"
                   }`}
+                  animate={{
+                    x: path.x,
+                    y: path.y,
+                    rotate: path.rotate,
+                    scale: path.scale,
+                  }}
+                  transition={{
+                    duration: path.duration,
+                    delay: path.delay,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  whileHover={{
+                    scale: 1.1,
+                    rotate: 0,
+                    zIndex: 50,
+                    transition: {
+                      duration: 0.35,
+                    },
+                  }}
+                  whileTap={{
+                    scale: 0.96,
+                  }}
                 >
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                  <motion.div
+                    animate={{
+                      rotateX: [0, 5, -4, 3, 0],
+                      rotateY: [0, -6, 5, -4, 0],
+                    }}
+                    transition={{
+                      duration: path.duration * 0.8,
+                      delay: path.delay,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    style={{
+                      transformStyle: "preserve-3d",
+                    }}
+                    className={`relative aspect-[.85] overflow-hidden rounded-2xl bg-[#e9dfca] shadow-[0_25px_60px_rgba(0,0,0,.18)] ${
+                      selected === item
+                        ? "ring-4 ring-[#1855df] ring-offset-4 ring-offset-[#f7f4ed]"
+                        : ""
+                    }`}
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
 
-                  {selected === item && (
-                    <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-[#ffd34b] text-[#173fca]">
-                      <Check />
-                    </span>
-                  )}
-                </div>
+                    {/* Floating glow */}
+                    <motion.div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -inset-10 -z-10 rounded-full bg-[#ffd34b]/20 blur-3xl"
+                      animate={{
+                        scale: [0.8, 1.15, 0.9, 1.2, 0.8],
+                        opacity: [0.2, 0.45, 0.25, 0.5, 0.2],
+                      }}
+                      transition={{
+                        duration: path.duration * 0.7,
+                        delay: path.delay,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    />
 
-                <p className="mt-3 font-semibold">{item.name}</p>
+                    {selected === item && (
+                      <motion.span
+                        initial={{ scale: 0, rotate: -90 }}
+                        animate={{
+                          scale: [1, 1.12, 1],
+                          rotate: 0,
+                        }}
+                        transition={{
+                          scale: {
+                            duration: 1.8,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          },
+                          rotate: {
+                            duration: 0.4,
+                          },
+                        }}
+                        className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-[#ffd34b] text-[#173fca] shadow-lg"
+                      >
+                        <Check />
+                      </motion.span>
+                    )}
+                  </motion.div>
 
-                <p className="mt-1 text-sm text-[#53615e]">
-                  From {naira(Math.min(item.adult_price, item.child_price))}
-                </p>
-              </motion.button>
-            ))}
+                  <motion.div
+                    animate={{
+                      y: [0, -5, 2, -4, 0],
+                      opacity: [0.85, 1, 0.9, 1, 0.85],
+                    }}
+                    transition={{
+                      duration: path.duration * 0.9,
+                      delay: path.delay,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <p className="mt-3 font-semibold">{item.name}</p>
+
+                    <p className="mt-1 text-sm text-[#53615e]">
+                      From {naira(Math.min(item.adult_price, item.child_price))}
+                    </p>
+                  </motion.div>
+                </motion.button>
+              );
+            })}
           </div>
           <div className="rounded-3xl bg-white p-6 shadow-[0_12px_50px_rgba(23,63,202,.08)] sm:p-8">
             <p className="eyebrow">Your selection</p>
