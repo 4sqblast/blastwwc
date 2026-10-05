@@ -1245,7 +1245,10 @@ export default function Page() {
                   </h2>
                 </div>
 
-                <button onClick={() => setCheckoutOpen(false)}>
+                <button
+                  className="gap-2"
+                  onClick={() => setCheckoutOpen(false)}
+                >
                   <X />
                 </button>
               </div>
