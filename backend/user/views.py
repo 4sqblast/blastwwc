@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.conf import settings
+from django.http import JsonResponse
 
 import json
 
@@ -115,3 +116,6 @@ def send_push_to_users(request, url="/"):
         {"message": "Push notifications sent."},
         status=status.HTTP_200_OK,
     )
+
+def cron_view(request):
+    return JsonResponse({'status': 'ok'})
