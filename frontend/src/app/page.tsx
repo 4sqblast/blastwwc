@@ -189,6 +189,7 @@ export default function Page() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [recipient, setRecipient] = useState("");
+  const [contact, setContact] = useState("");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
@@ -430,6 +431,10 @@ export default function Page() {
         throw new Error("Recipient name is required");
       }
 
+      if (!contact.trim()) {
+        throw new Error("Recipient contact is required");
+      }
+
       if (!receipt) {
         throw new Error("Receipt is required");
       }
@@ -460,6 +465,7 @@ export default function Page() {
       const response = await api.post("order/create/", {
         user: userId,
         recipient: recipient.trim(),
+        contact: contact.trim(),
         receipt: receiptUrl,
         items: JSON.stringify(items),
       });
@@ -1261,18 +1267,35 @@ export default function Page() {
                 <>
                   <div className="mt-7 flex flex-col gap-5">
                     {/* Recipient */}
-                    <div>
-                      <label className="label" htmlFor="recipient">
-                        Recipient name
-                      </label>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="label" htmlFor="recipient">
+                          Recipient name
+                        </label>
 
-                      <input
-                        id="recipient"
-                        value={recipient}
-                        onChange={(event) => setRecipient(event.target.value)}
-                        placeholder="Who should receive the order?"
-                        className="field"
-                      />
+                        <input
+                          id="recipient"
+                          value={recipient}
+                          onChange={(event) => setRecipient(event.target.value)}
+                          placeholder="Who should receive the order?"
+                          className="field"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="label" htmlFor="contact">
+                          Recipient contact
+                        </label>
+
+                        <input
+                          id="contact"
+                          type="tel"
+                          value={contact}
+                          onChange={(event) => setContact(event.target.value)}
+                          placeholder="080 1234 5678"
+                          className="field"
+                        />
+                      </div>
                     </div>
 
                     {/* Payment Details */}

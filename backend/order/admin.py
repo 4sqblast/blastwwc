@@ -17,6 +17,7 @@ class OrderAdmin(admin.ModelAdmin):
         "id",
         "user",
         "recipient",
+        "contact",
         "items_summary",
         "timestamp",
         "receipt_preview",
@@ -28,6 +29,7 @@ class OrderAdmin(admin.ModelAdmin):
         "user__email",
         "user__username",
         "recipient",
+        "contact",
     )
 
     list_filter = (
@@ -51,6 +53,7 @@ class OrderAdmin(admin.ModelAdmin):
                 "fields": (
                     "user",
                     "recipient",
+                    "contact",
                     "timestamp",
                 )
             },
@@ -133,5 +136,6 @@ class OrderItemAdmin(admin.ModelAdmin):
     search_fields = (
         "order__user__email",
         "order__recipient",
+        "order__contact",
         "merch__name",
     )
