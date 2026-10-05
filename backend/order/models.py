@@ -6,7 +6,10 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_orders')
     recipient = models.CharField(max_length=100)
     receipt = models.URLField()
-    timestamp = models.DateField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.recipient}"
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
@@ -14,3 +17,6 @@ class OrderItem(models.Model):
     size = models.CharField(max_length=50)
     color = models.CharField(max_length=50)
     quantity = models.IntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.quantity} × {self.merch.name} ({self.size}, {self.color})"

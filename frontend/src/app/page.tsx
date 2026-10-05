@@ -1088,7 +1088,7 @@ export default function Page() {
               <button
                 type="button"
                 onClick={() => router.push("/send")}
-                className="text-white/20 transition hover:text-white/50"
+                className="text-white/20 transition hover:text-white/50 p-2"
                 aria-label="Notification administration"
                 title="Notification administration"
               >

@@ -6,3 +6,6 @@ class Merch(models.Model):
     child_price = models.PositiveIntegerField()
     image = models.URLField()
     color = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"{self.name} - {self.color}"

@@ -84,7 +84,7 @@ export default function PushTestPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-black"
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#172c2a]"
           />
 
           {message && <p className="mt-3 text-sm text-red-500">{message}</p>}
@@ -95,6 +95,17 @@ export default function PushTestPage() {
           >
             Continue
           </button>
+
+          <div className="mt-6 border-t border-gray-100 pt-5 text-center">
+            <a
+              href="https://blastwwc.onrender.com/admin/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-[#172c2a] transition hover:opacity-60"
+            >
+              Go to Dashboard →
+            </a>
+          </div>
         </form>
       </main>
     );
