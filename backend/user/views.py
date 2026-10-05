@@ -57,7 +57,7 @@ class PushSubscriptionView(APIView):
 
 
 
-def send_push_notification(subscription, title, body, url="https://blastwwc.vercel.app/", icon="https://blastwwc.onrender.com/static/images/c-freshoilicon.png", badge="https://blastwwc.onrender.com/static/images/c-freshoilicon.png"):
+def send_push_notification(subscription, title, body, url="https://blastwwc.vercel.app/", icon="/icon-192.png", badge="/badge-72.png"):
     payload = {
         "title": title,
         "body": body,
