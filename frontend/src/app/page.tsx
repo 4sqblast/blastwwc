@@ -42,35 +42,65 @@ const EventDetails = dynamic(() => import("@/components/EventDetails"), {
   ssr: false,
 });
 const flyer =
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_2293.PNG-2MRVZHOgks7uNFlvlwElM0fO5A2z2M.png";
+  "https://ik.imagekit.io/8vyfdxunw/Anointing%20Oil%20in%20Prayer.jpg";
+const image1 =
+  "https://ik.imagekit.io/8vyfdxunw/Anointing%20Oil%20in%20Prayer.jpg";
+const image2 =
+  "https://ik.imagekit.io/8vyfdxunw/Joyful%20Golden%20Anointing%20on%20Stage.jpg";
+const image3 =
+  "https://ik.imagekit.io/8vyfdxunw/Golden%20Focus%20in%20the%20Control%20Room.jpg";
 const eventDate = new Date("2026-11-19T18:00:00+01:00");
-const gallery = [flyer, flyer, flyer];
+const gallery = [image1, image2, image3];
+
 const fallbackMerch: Merch[] = [
   {
     id: 1,
     name: "Fresh Oil Tee",
-    adult_price: 12000,
-    child_price: 9000,
+    adult_price_normal: 12000,
+    adult_price_stonewash: 14000,
+    child_price_1_5: 7000,
+    child_price_6_10: 9000,
     image: flyer,
     color: "blue",
   },
   {
     id: 2,
     name: "Blast Keepsake",
-    adult_price: 15000,
-    child_price: 11000,
+    adult_price_normal: 15000,
+    adult_price_stonewash: 17000,
+    child_price_1_5: 9000,
+    child_price_6_10: 11000,
     image: flyer,
     color: "black",
   },
   {
     id: 3,
     name: "Word & Worship Tee",
-    adult_price: 12000,
-    child_price: 9000,
+    adult_price_normal: 12000,
+    adult_price_stonewash: 14000,
+    child_price_1_5: 7000,
+    child_price_6_10: 9000,
     image: flyer,
     color: "white",
   },
 ];
+
+function getMerchPrice(
+  product: Merch,
+  audience: "Adult" | "Child",
+  finish: "Normal" | "Stonewash",
+  childAge: "1-5" | "6-10",
+): number {
+  if (audience === "Adult") {
+    return finish === "Normal"
+      ? product.adult_price_normal
+      : product.adult_price_stonewash;
+  }
+
+  return childAge === "1-5"
+    ? product.child_price_1_5
+    : product.child_price_6_10;
+}
 
 const naira = (value: number) =>
   new Intl.NumberFormat("en-NG", {
@@ -197,8 +227,11 @@ export default function Page() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [finish, setFinish] = useState<"Normal" | "Stonewash">("Normal");
+  const [childAge, setChildAge] = useState<"1-5" | "6-10">("6-10");
 
   const router = useRouter();
+  const paymentNarration = "WWC MERCH";
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -274,50 +307,52 @@ export default function Page() {
       cart.reduce(
         (sum, item) =>
           sum +
-          (item.audience === "Adult"
-            ? item.product.adult_price
-            : item.product.child_price) *
+          getMerchPrice(
+            item.product,
+            item.audience,
+            item.finish,
+            item.childAge,
+          ) *
             item.quantity,
         0,
       ),
     [cart],
   );
-  const selectedPrice =
-    audience === "Adult" ? selected.adult_price : selected.child_price;
+
+  const selectedPrice = getMerchPrice(selected, audience, finish, childAge);
 
   function addToCart() {
-    const itemId = selected.id;
-
     setCart((items) => {
       const existing = items.find(
         (item) =>
-          item.id === itemId &&
+          item.product.id === selected.id &&
           item.size === size &&
-          item.audience === audience,
+          item.audience === audience &&
+          item.finish === finish &&
+          item.childAge === childAge,
       );
 
-      return existing
-        ? items.map((item) =>
-            item.id === itemId &&
-            item.size === size &&
-            item.audience === audience
-              ? {
-                  ...item,
-                  quantity: item.quantity + quantity,
-                }
-              : item,
-          )
-        : [
-            ...items,
-            {
-              id: itemId,
-              product: selected,
-              size,
-              audience,
-              quantity,
-              color: selected.color,
-            },
-          ];
+      if (existing) {
+        return items.map((item) =>
+          item === existing
+            ? { ...item, quantity: item.quantity + quantity }
+            : item,
+        );
+      }
+
+      return [
+        ...items,
+        {
+          id: Date.now(),
+          product: selected,
+          size,
+          audience,
+          finish,
+          childAge,
+          quantity,
+          color: selected.color,
+        },
+      ];
     });
 
     setCartOpen(true);
@@ -751,155 +786,48 @@ export default function Page() {
           </p>
         </div>
         <div className="mt-12 gap-10">
-          <div className="relative flex min-h-[520px] items-center justify-center overflow-visible p-4 sm:min-h-[580px]">
-            {merch.map((item, index) => {
-              const paths = [
-                {
-                  x: [-30, 80, 20, -90, -30],
-                  y: [40, -80, 30, 100, 40],
-                  rotate: [-4, 8, -5, 6, -4],
-                  scale: [1, 1.05, 0.97, 1.04, 1],
-                  duration: 8.5,
-                  delay: 0,
-                },
-                {
-                  x: [70, -40, -100, 40, 70],
-                  y: [-40, 80, -20, -100, -40],
-                  rotate: [5, -8, 4, -6, 5],
-                  scale: [0.98, 1.04, 1.02, 0.97, 0.98],
-                  duration: 10,
-                  delay: 1.2,
-                },
-                {
-                  x: [-80, 20, 100, -20, -80],
-                  y: [-20, 100, -70, 40, -20],
-                  rotate: [-6, 5, 8, -4, -6],
-                  scale: [1.03, 0.96, 1.06, 0.99, 1.03],
-                  duration: 9.2,
-                  delay: 2.1,
-                },
-              ];
+          <div className="flex gap-5 overflow-x-auto px-4 py-6 snap-x snap-mandatory scrollbar-hide">
+            {merch.map((item) => (
+              <button
+                key={item.id ?? item.name}
+                onClick={() => setSelected(item)}
+                className={`blast-pulse group w-[72%] max-w-[260px] flex-shrink-0 snap-center text-left sm:w-[40%] lg:w-[25%] ${
+                  selected === item
+                    ? "rounded-2xl ring-4 ring-[#1855df] ring-offset-4 ring-offset-[#f7f4ed]"
+                    : ""
+                }`}
+              >
+                <div className="relative aspect-[.85] overflow-hidden rounded-2xl bg-[#e9dfca] shadow-md">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="size-full object-cover"
+                  />
 
-              const path = paths[index % paths.length];
+                  {selected === item && (
+                    <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-[#ffd34b] text-[#173fca] shadow-md">
+                      <Check />
+                    </span>
+                  )}
+                </div>
 
-              return (
-                <motion.button
-                  key={item.id ?? item.name}
-                  onClick={() => setSelected(item)}
-                  className={`group absolute left-1/2 top-1/2 w-[72%] max-w-[300px] -translate-x-1/2 -translate-y-1/2 text-left sm:w-[45%] lg:w-[32%] ${
-                    index === 1 ? "z-20" : index === 2 ? "z-10" : "z-0"
-                  }`}
-                  animate={{
-                    x: path.x,
-                    y: path.y,
-                    rotate: path.rotate,
-                    scale: path.scale,
-                  }}
-                  transition={{
-                    duration: path.duration,
-                    delay: path.delay,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  whileHover={{
-                    scale: 1.1,
-                    rotate: 0,
-                    zIndex: 50,
-                    transition: {
-                      duration: 0.35,
-                    },
-                  }}
-                  whileTap={{
-                    scale: 0.96,
-                  }}
-                >
-                  <motion.div
-                    animate={{
-                      rotateX: [0, 5, -4, 3, 0],
-                      rotateY: [0, -6, 5, -4, 0],
-                    }}
-                    transition={{
-                      duration: path.duration * 0.8,
-                      delay: path.delay,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    style={{
-                      transformStyle: "preserve-3d",
-                    }}
-                    className={`relative aspect-[.85] overflow-hidden rounded-2xl bg-[#e9dfca] shadow-[0_25px_60px_rgba(0,0,0,.18)] ${
-                      selected === item
-                        ? "ring-4 ring-[#1855df] ring-offset-4 ring-offset-[#f7f4ed]"
-                        : ""
-                    }`}
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
+                <div className="mt-3">
+                  <p className="font-semibold">{item.name}</p>
 
-                    {/* Floating glow */}
-                    <motion.div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -inset-10 -z-10 rounded-full bg-[#ffd34b]/20 blur-3xl"
-                      animate={{
-                        scale: [0.8, 1.15, 0.9, 1.2, 0.8],
-                        opacity: [0.2, 0.45, 0.25, 0.5, 0.2],
-                      }}
-                      transition={{
-                        duration: path.duration * 0.7,
-                        delay: path.delay,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    />
-
-                    {selected === item && (
-                      <motion.span
-                        initial={{ scale: 0, rotate: -90 }}
-                        animate={{
-                          scale: [1, 1.12, 1],
-                          rotate: 0,
-                        }}
-                        transition={{
-                          scale: {
-                            duration: 1.8,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          },
-                          rotate: {
-                            duration: 0.4,
-                          },
-                        }}
-                        className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-[#ffd34b] text-[#173fca] shadow-lg"
-                      >
-                        <Check />
-                      </motion.span>
+                  <p className="mt-1 text-sm text-[#53615e]">
+                    From{" "}
+                    {naira(
+                      Math.min(
+                        item.adult_price_normal,
+                        item.adult_price_stonewash,
+                        item.child_price_1_5,
+                        item.child_price_6_10,
+                      ),
                     )}
-                  </motion.div>
-
-                  <motion.div
-                    animate={{
-                      y: [0, -5, 2, -4, 0],
-                      opacity: [0.85, 1, 0.9, 1, 0.85],
-                    }}
-                    transition={{
-                      duration: path.duration * 0.9,
-                      delay: path.delay,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <p className="mt-3 font-semibold">{item.name}</p>
-
-                    <p className="mt-1 text-sm text-[#53615e]">
-                      From {naira(Math.min(item.adult_price, item.child_price))}
-                    </p>
-                  </motion.div>
-                </motion.button>
-              );
-            })}
+                  </p>
+                </div>
+              </button>
+            ))}
           </div>
           <div className="rounded-3xl bg-white p-6 shadow-[0_12px_50px_rgba(23,63,202,.08)] sm:p-8">
             <p className="eyebrow">Your selection</p>
@@ -929,15 +857,61 @@ export default function Page() {
                   >
                     {option}
                     <span className="mt-1 block text-xs font-normal">
-                      {naira(
-                        option === "Adult"
-                          ? selected.adult_price
-                          : selected.child_price,
-                      )}
+                      {/* {naira(getMerchPrice(selected, option, finish, childAge))} */}
                     </span>
                   </button>
                 ))}
               </div>
+
+              {audience === "Adult" ? (
+                <div className="mt-7">
+                  <label className="label">Finish</label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {(["Normal", "Stonewash"] as const).map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => setFinish(option)}
+                        className={`rounded-xl border px-3 py-3 text-sm font-semibold ${
+                          finish === option
+                            ? "border-[#1855df] bg-[#edf2ff] text-[#1855df]"
+                            : "border-[#d6ddd8]"
+                        }`}
+                      >
+                        {option}
+                        <span className="mt-1 block text-xs font-normal">
+                          {naira(
+                            getMerchPrice(selected, "Adult", option, childAge),
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-7">
+                  <label className="label">Child's age range</label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {(["1-5", "6-10"] as const).map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => setChildAge(option)}
+                        className={`rounded-xl border px-3 py-3 text-sm font-semibold ${
+                          childAge === option
+                            ? "border-[#1855df] bg-[#edf2ff] text-[#1855df]"
+                            : "border-[#d6ddd8]"
+                        }`}
+                      >
+                        Ages {option}
+                        <span className="mt-1 block text-xs font-normal">
+                          {naira(
+                            getMerchPrice(selected, "Child", finish, option),
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="mt-7 flex items-center justify-between">
               <div>
@@ -1159,6 +1133,10 @@ export default function Page() {
                               </p>
                               <p className="mt-1 text-xs text-[#53615e]">
                                 {item.audience} · {item.size}
+                                {" · "}
+                                {item.audience === "Adult"
+                                  ? item.finish
+                                  : `Ages ${item.childAge}`}
                               </p>
                             </div>
                             <button
@@ -1192,9 +1170,12 @@ export default function Page() {
                             </div>
                             <p className="font-semibold">
                               {naira(
-                                (item.audience === "Adult"
-                                  ? item.product.adult_price
-                                  : item.product.child_price) * item.quantity,
+                                getMerchPrice(
+                                  item.product,
+                                  item.audience,
+                                  item.finish,
+                                  item.childAge,
+                                ) * item.quantity,
                               )}
                             </p>
                           </div>
@@ -1351,7 +1332,7 @@ export default function Page() {
 
                             <div className="mt-2 flex items-center justify-between gap-3">
                               <p className="text-2xl font-bold tracking-[0.08em] text-[#ffd34b]">
-                                25666798543
+                                0694798433
                               </p>
 
                               <button
@@ -1374,6 +1355,33 @@ export default function Page() {
                                 : "Tap the copy button to copy"}
                             </p>
                           </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <p className="text-sm text-gray-500">
+                            Payment narration
+                          </p>
+
+                          <div className="mt-1 flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-3">
+                            <span className="font-semibold text-gray-900">
+                              {paymentNarration}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(paymentNarration);
+                              }}
+                              className="rounded-lg bg-[#1855df] px-3 py-2 text-sm font-medium text-white"
+                            >
+                              Copy
+                            </button>
+                          </div>
+
+                          <p className="mt-2 text-xs text-gray-500">
+                            Please use WWC MERCH as the narration when making
+                            your transfer.
+                          </p>
                         </div>
 
                         <div className="mt-5 flex items-center justify-between border-t border-white/15 pt-4">

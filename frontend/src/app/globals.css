@@ -127,3 +127,30 @@ a {
     color-scheme: dark;
   }
 } */
+
+
+/* Endless, gentle card pulsing */
+@keyframes blast-card-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+.blast-pulse {
+  animation: blast-card-pulse 3.2s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* Respect accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+  .blast-pulse {
+    animation: none;
+    will-change: auto;
+  }
+}
