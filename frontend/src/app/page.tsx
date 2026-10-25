@@ -322,11 +322,12 @@ export default function Page() {
   const selectedPrice = getMerchPrice(selected, audience, finish, childAge);
 
   function addToCart() {
+    const selectedSize = audience === "Child" ? "S" : size;
     setCart((items) => {
       const existing = items.find(
         (item) =>
           item.product.id === selected.id &&
-          item.size === size &&
+          item.size === selectedSize &&
           item.audience === audience &&
           item.finish === finish &&
           item.childAge === childAge,
@@ -345,7 +346,7 @@ export default function Page() {
         {
           id: Date.now(),
           product: selected,
-          size,
+          size: selectedSize,
           audience,
           finish,
           childAge,
@@ -490,7 +491,9 @@ export default function Page() {
       const items = cart.map((item) => ({
         merch: item.product.id,
         quantity: item.quantity,
-        size: `${item.audience} - ${item.size}`,
+        size: `${item.audience} - ${
+          item.audience === "Child" ? "S" : item.size
+        }`,
         color: item.color || item.product.color || "",
       }));
 
@@ -813,18 +816,6 @@ export default function Page() {
 
                 <div className="mt-3">
                   <p className="font-semibold">{item.name}</p>
-
-                  <p className="mt-1 text-sm text-[#53615e]">
-                    From{" "}
-                    {naira(
-                      Math.min(
-                        item.adult_price_normal,
-                        item.adult_price_stonewash,
-                        item.child_price_1_5,
-                        item.child_price_6_10,
-                      ),
-                    )}
-                  </p>
                 </div>
               </button>
             ))}
@@ -832,20 +823,27 @@ export default function Page() {
           <div className="rounded-3xl bg-white p-6 shadow-[0_12px_50px_rgba(23,63,202,.08)] sm:p-8">
             <p className="eyebrow">Your selection</p>
             <h3 className="mt-3 text-2xl font-bold">{selected.name}</h3>
-            <div className="mt-7">
-              <label className="label">Size</label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {["S", "M", "L", "XL", "XXL"].map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setSize(option)}
-                    className={`size-11 rounded-full border text-sm font-semibold ${size === option ? "border-[#1855df] bg-[#1855df] text-white" : "border-[#d6ddd8] hover:border-[#1855df]"}`}
-                  >
-                    {option}
-                  </button>
-                ))}
+            {audience === "Adult" && (
+              <div className="mt-7">
+                <label className="label">Size</label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {["S", "M", "L", "XL", "XXL"].map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setSize(option)}
+                      className={`size-11 rounded-full border text-sm font-semibold ${
+                        size === option
+                          ? "border-[#1855df] bg-[#1855df] text-white"
+                          : "border-[#d6ddd8] hover:border-[#1855df]"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
             <div className="mt-7">
               <label className="label">For</label>
               <div className="mt-2 grid grid-cols-2 gap-2">
@@ -1132,11 +1130,16 @@ export default function Page() {
                                 {item.product.name}
                               </p>
                               <p className="mt-1 text-xs text-[#53615e]">
-                                {item.audience} · {item.size}
-                                {" · "}
-                                {item.audience === "Adult"
-                                  ? item.finish
-                                  : `Ages ${item.childAge}`}
+                                {item.audience === "Adult" && (
+                                  <>
+                                    {item.audience} · {item.size} ·{" "}
+                                    {item.finish}
+                                  </>
+                                )}
+
+                                {item.audience === "Child" && (
+                                  <>Child · Ages {item.childAge}</>
+                                )}
                               </p>
                             </div>
                             <button
