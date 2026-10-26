@@ -10,7 +10,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ['merch', 'quantity', 'size', 'color']
+        fields = ['merch', 'quantity', 'size', 'color', 'merchtype']
 
 
 class OrderSerializer(serializers.ModelSerializer):

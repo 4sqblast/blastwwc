@@ -18,6 +18,7 @@ class OrderItem(models.Model):
     size = models.CharField(max_length=50)
     color = models.CharField(max_length=50)
     quantity = models.IntegerField(default=1)
+    merchtype = models.CharField(max_length=50, null=True)
 
     def __str__(self):
-        return f"{self.quantity} × {self.merch.name} ({self.size}, {self.color})"
+        return f"{self.quantity} × {self.merch.name} ({self.size}, {self.color}, {self.merchtype})"

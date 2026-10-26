@@ -322,7 +322,7 @@ export default function Page() {
   const selectedPrice = getMerchPrice(selected, audience, finish, childAge);
 
   function addToCart() {
-    const selectedSize = audience === "Child" ? "S" : size;
+    const selectedSize = audience === "Child" ? "." : size;
     setCart((items) => {
       const existing = items.find(
         (item) =>
@@ -488,13 +488,19 @@ export default function Page() {
         throw new Error("Receipt upload failed");
       }
 
+      if (!finish || !childAge) {
+        throw new Error("Merch type not selected");
+      }
+
       const items = cart.map((item) => ({
         merch: item.product.id,
         quantity: item.quantity,
         size: `${item.audience} - ${
-          item.audience === "Child" ? "S" : item.size
+          item.audience === "Child" ? "." : item.size
         }`,
         color: item.color || item.product.color || "",
+        merchtype:
+          item.audience === "Child" ? `ChildAge ${item.childAge}` : item.finish,
       }));
 
       // Send JSON instead of FormData.
@@ -518,7 +524,7 @@ export default function Page() {
 
         setCart([]);
         setRecipient("");
-        setContact("")
+        setContact("");
         setReceipt(null);
         setReceiptUrl(null);
         setReceiptError(null);
