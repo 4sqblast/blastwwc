@@ -518,6 +518,7 @@ export default function Page() {
 
         setCart([]);
         setRecipient("");
+        setContact("")
         setReceipt(null);
         setReceiptUrl(null);
         setReceiptError(null);
@@ -1324,7 +1325,9 @@ export default function Page() {
                               <p className="text-[10px] uppercase tracking-[0.18em] text-white/50">
                                 Account name
                               </p>
-                              <p className="mt-1 font-semibold">Blast Church</p>
+                              <p className="mt-1 font-semibold">
+                                FOURSQUARE GCY/YOUTH CHURCH
+                              </p>
                             </div>
                           </div>
 
@@ -1361,7 +1364,7 @@ export default function Page() {
                         </div>
 
                         <div className="mt-4">
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-white">
                             Payment narration
                           </p>
 
@@ -1381,7 +1384,7 @@ export default function Page() {
                             </button>
                           </div>
 
-                          <p className="mt-2 text-xs text-gray-500">
+                          <p className="mt-2 text-xs text-white">
                             Please use WWC MERCH as the narration when making
                             your transfer.
                           </p>
@@ -1407,44 +1410,110 @@ export default function Page() {
 
                       <label
                         htmlFor="receipt"
-                        className="mt-2 flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-[#9eaaa4] bg-white p-4 text-sm transition hover:border-[#1855df]"
+                        className={`mt-2 flex cursor-pointer items-center gap-3 rounded-xl border bg-white px-4 py-4 transition-all duration-200 ${
+                          receiptError
+                            ? "border-red-400 focus-within:ring-2 focus-within:ring-red-100"
+                            : receiptUrl
+                              ? "border-green-400 bg-green-50/50"
+                              : "border-[#d5ded9] hover:border-[#1855df] focus-within:border-[#1855df] focus-within:ring-2 focus-within:ring-[#1855df]/10"
+                        }`}
                       >
-                        {isUploadingReceipt && (
-                          <p className="mt-2 text-xs text-[#53615e]">
-                            Compressing and uploading receipt...
-                          </p>
-                        )}
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#1855df]/10 text-[#1855df]">
+                          {isUploadingReceipt ? (
+                            <svg
+                              className="h-5 w-5 animate-spin"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                                className="opacity-20"
+                              />
+                              <path
+                                d="M4 12a8 8 0 018-8"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          ) : receiptUrl ? (
+                            <svg
+                              className="h-5 w-5 text-green-600"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                d="m5 12 4 4L19 6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          ) : (
+                            <svg
+                              className="h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.7"
+                            >
+                              <path
+                                d="M12 16V4m0 0L7 9m5-5 5 5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M20 16.5v2A1.5 1.5 0 0118.5 20h-13A1.5 1.5 0 014 18.5v-2"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          )}
+                        </div>
 
-                        {receiptUrl && !isUploadingReceipt && (
-                          <p className="mt-2 text-xs font-medium text-green-600">
-                            Receipt ready ✓
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={`truncate text-sm font-medium ${
+                              receiptUrl && !isUploadingReceipt
+                                ? "text-green-700"
+                                : "text-[#26332f]"
+                            }`}
+                          >
+                            {isUploadingReceipt
+                              ? "Uploading receipt..."
+                              : receiptUrl
+                                ? "Receipt uploaded successfully"
+                                : "Click to upload payment receipt"}
                           </p>
-                        )}
 
-                        {receiptError && (
-                          <p className="mt-2 text-xs font-medium text-red-500">
-                            {receiptError}
+                          <p className="mt-1 text-xs text-[#7b8983]">
+                            {isUploadingReceipt
+                              ? "Compressing and uploading your image"
+                              : receiptUrl
+                                ? "Your receipt is ready ✓"
+                                : "PNG, JPG or JPEG · Select an image"}
                           </p>
+                        </div>
+
+                        {!isUploadingReceipt && !receiptUrl && (
+                          <span className="shrink-0 rounded-lg bg-[#1855df] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#1445b5]">
+                            Browse
+                          </span>
                         )}
                       </label>
+
                       <input
                         id="receipt"
                         type="file"
                         accept="image/*"
                         className="sr-only"
                         onChange={handleReceiptChange}
+                        disabled={isUploadingReceipt}
                       />
-                      {isUploadingReceipt && (
-                        <p className="mt-2 text-xs text-[#53615e]">
-                          Compressing and uploading receipt...
-                        </p>
-                      )}
-
-                      {receiptUrl && !isUploadingReceipt && (
-                        <p className="mt-2 text-xs font-medium text-green-600">
-                          Receipt ready ✓
-                        </p>
-                      )}
 
                       {receiptError && (
                         <p className="mt-2 text-xs font-medium text-red-500">

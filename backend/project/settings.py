@@ -198,3 +198,6 @@ VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
 VAPID_SUBJECT = os.getenv("VAPID_SUBJECT")
 
 
+TIME_ZONE = "Africa/Lagos"
+
+USE_TZ = True
