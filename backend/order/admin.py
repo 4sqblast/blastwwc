@@ -28,6 +28,7 @@ class OrderAdmin(admin.ModelAdmin):
         "user",
         "recipient",
         "contact",
+        "comment",
         "items_summary",
         "timestamp",
         "receipt_preview",
@@ -63,6 +64,7 @@ class OrderAdmin(admin.ModelAdmin):
                     "user",
                     "recipient",
                     "contact",
+                    "comment",
                     "timestamp",
                 )
             },

@@ -220,6 +220,7 @@ export default function Page() {
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [recipient, setRecipient] = useState("");
   const [contact, setContact] = useState("");
+  const [comment, setComment] = useState("");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
@@ -510,6 +511,7 @@ export default function Page() {
         user: userId,
         recipient: recipient.trim(),
         contact: contact.trim(),
+        comment: comment.trim(),
         receipt: receiptUrl,
         items: JSON.stringify(items),
       });
@@ -525,6 +527,7 @@ export default function Page() {
         setCart([]);
         setRecipient("");
         setContact("");
+        setComment("");
         setReceipt(null);
         setReceiptUrl(null);
         setReceiptError(null);
@@ -1288,6 +1291,22 @@ export default function Page() {
                           onChange={(event) => setContact(event.target.value)}
                           placeholder="080 1234 5678"
                           className="field"
+                        />
+                      </div>
+
+                      {/* Comments */}
+                      <div>
+                        <label className="label" htmlFor="comment">
+                          Additional comments (optional)
+                        </label>
+
+                        <textarea
+                          id="comment"
+                          value={comment}
+                          onChange={(event) => setComment(event.target.value)}
+                          placeholder="Any additional comments or special instructions?"
+                          className="field min-h-24 resize-y"
+                          rows={3}
                         />
                       </div>
                     </div>
